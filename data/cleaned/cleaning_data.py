@@ -69,3 +69,26 @@ df.to_csv(
 )
 
 print("Cleaned CSV saved successfully")
+def get_season(month):
+    if month in [12, 1, 2]:
+        return 'Winter'
+    elif month in [3, 4, 5]:
+        return 'Summer'
+    elif month in [6, 7, 8]:
+        return 'Monsoon'
+    else:
+        return 'Post-Monsoon'
+    
+df['season'] = df['month'].apply(get_season)
+from sklearn.preprocessing import LabelEncoder
+
+season_encoder = LabelEncoder()
+
+df['season'] = season_encoder.fit_transform(df['season'])
+df['so2_no2_ratio'] = df['so2'] / (df['no2'] + 1)
+df['total_pollution'] = (
+    df['so2'] +
+    df['no2'] +
+    df['rspm']
+)
+print(df.head())
