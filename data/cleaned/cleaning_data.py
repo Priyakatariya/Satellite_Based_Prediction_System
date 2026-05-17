@@ -3,7 +3,7 @@ import numpy as np
 import sklearn 
 
 df = pd.read_csv(
-    'Satellite_Prediction_System/data/raw/data.csv',
+    'data/raw/data.csv',
     encoding='latin1',
     low_memory=False
 )
@@ -64,7 +64,7 @@ df['location'] = encoder.fit_transform(df['location'])
 
 df['type'] = encoder.fit_transform(df['type'])
 df.to_csv(
-    'Satellite_Prediction_System/data/processed/cleaned_data.csv',
+    'data/processed/cleaned_data.csv',
     index=False
 )
 
