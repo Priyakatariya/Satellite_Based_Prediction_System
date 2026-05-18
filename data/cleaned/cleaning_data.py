@@ -92,3 +92,55 @@ df['total_pollution'] = (
     df['rspm']
 )
 print(df.head())
+# Exploratory Data Analysis
+import matplotlib.pyplot as plt
+import seaborn as sns
+#PM2.5 distribution plot##############
+plt.figure(figsize=(10,6))
+sns.histplot(df['pm2_5'],bins=20,kde=True)
+plt.title('PM2.5 Distribution')
+plt.xlabel('PM2.5')
+plt.ylabel('Frequency')
+plt.show()
+
+#NO2 distribution plot ##############
+plt.figure(figsize=(8,5))
+sns.histplot(df['no2'], kde=True)
+plt.title("NO2 Distribution")
+plt.show()
+
+#SO2 distribution plot ##############
+plt.figure(figsize=(8,5))
+sns.histplot(df['so2'],kde=True)
+plt.title("So2 Distribution")
+plt.show()
+
+
+#HISTOGRAM
+df[['so2','no2','rspm','pm2_5']].hist(
+    figsize=(12,8),
+    bins=20
+)
+plt.suptitle("Histograms of Pollutants")
+plt.show()
+
+
+#BOXPLOT( FOR OUTLIERS):
+plt.figure(figsize=(10,6))
+sns.boxplot(data=df[['so2','no2','rspm','pm2_5']])
+plt.title("Boxplot of Pollutants")
+plt.show()
+
+#CORRELATION HEATMAP
+plt.figure(figsize=(10,6))
+sns.heatmap(df[['so2','no2','rspm','pm2_5']].corr(),annot=True,cmap='coolwarm')
+plt.title("Correlation Heatmap of Pollutants")
+plt.show()
+
+#PM2.5 over time
+plt.figure(figsize=(14,6))
+plt.plot(df['date'], df['pm2_5'])
+plt.title("PM2.5 Over Time")
+plt.xlabel("Date")
+plt.ylabel("PM2.5")
+plt.show()
