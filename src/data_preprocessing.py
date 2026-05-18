@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+from sklearn.preprocessing import StandardScaler
 
 def merge_datasets():
     print("Loading datasets...")
@@ -51,6 +52,58 @@ def merge_datasets():
     output_path = os.path.join('data', 'processed', 'combined_dataset.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"Combined dataset saved successfully to {output_path}")
+    
+    return combined_df
+
+def clean_combined_data(combined_df=None):
+    if combined_df is None:
+        input_path = os.path.join('data', 'processed', 'combined_dataset.csv')
+        if not os.path.exists(input_path):
+            print("Combined dataset not found. Run merge_datasets() first.")
+            return
+        combined_df = pd.read_csv(input_path)
+        
+    print("Starting post-merge data cleaning...")
+    
+    # 1. Rename and drop duplicate columns
+    # Pandas appends _x and _y to overlapping columns.
+    # We keep Indian PM2.5 (pm2_5_x) as the main target and drop the UCI PM2.5 (pm2_5_y).
+    if 'pm2_5_x' in combined_df.columns:
+        combined_df = combined_df.rename(columns={'pm2_5_x': 'pm2_5'})
+    if 'pm2_5_y' in combined_df.columns:
+        combined_df = combined_df.drop(columns=['pm2_5_y'])
+        
+    # 2. Sort data by date and station
+    if 'date' in combined_df.columns and 'stn_code' in combined_df.columns:
+        combined_df['date'] = pd.to_datetime(combined_df['date'])
+        combined_df = combined_df.sort_values(by=['stn_code', 'date']).reset_index(drop=True)
+        
+    # 3. Handle any NaN values created by the merge (Forward fill, then backward fill within each station)
+    print("Handling missing values...")
+    if 'stn_code' in combined_df.columns:
+        # Avoid the DeprecationWarning regarding grouped fillna
+        # Instead, we apply ffill and bfill directly on the dataframe groupby columns
+        grouped = combined_df.groupby('stn_code')
+        for col in combined_df.columns:
+            if col not in ['stn_code']:
+                combined_df[col] = grouped[col].transform(lambda x: x.ffill().bfill())
+    else:
+        combined_df = combined_df.ffill().bfill()
+        
+    # 4. Feature Scaling (Standardization)
+    print("Scaling numerical features...")
+    # We shouldn't scale the target variable ('pm2_5') or identifiers/categorical variables
+    exclude_cols = ['date', 'stn_code', 'state', 'location', 'type', 'pm2_5', 'year', 'month', 'day']
+    num_cols = [col for col in combined_df.select_dtypes(include=[np.number]).columns if col not in exclude_cols]
+    
+    scaler = StandardScaler()
+    combined_df[num_cols] = scaler.fit_transform(combined_df[num_cols])
+    
+    output_path = os.path.join('data', 'processed', 'model_ready_data.csv')
+    combined_df.to_csv(output_path, index=False)
+    print(f"Model-ready dataset saved to {output_path}")
+    print(f"Final shape: {combined_df.shape}")
 
 if __name__ == "__main__":
-    merge_datasets()
+    df = merge_datasets()
+    clean_combined_data(df)
