@@ -3,38 +3,51 @@ import numpy as np
 import sklearn 
 
 df = pd.read_csv(
-    'data/raw/data.csv',
-    encoding='latin1',
+    'data/raw/combined_dataset.csv',
     low_memory=False
 )
 
 #handling missing values
-df = df.dropna(subset=['pm2_5'])
-df = df.drop(columns=['spm'])
+df = df.dropna(subset=['pm2_5_x'])
+
+if 'pm2_5_y' in df.columns:
+    df = df.drop(columns=['pm2_5_y'])
+
+if 'spm' in df.columns:
+    df = df.drop(columns=['spm'])
 
 df['so2'] = df['so2'].fillna(df['so2'].median())
 
 df['no2'] = df['no2'].fillna(df['no2'].median())
 
 df['rspm'] = df['rspm'].fillna(df['rspm'].median())
+
 print(df.isnull().sum())
+
 print(df.duplicated().sum())
+
 #handling proper date format
 df['date'] = pd.to_datetime(df['date'], errors='coerce')
+
 print(df['date'].isnull().sum())
+
 df['year'] = df['date'].dt.year
 
 df['month'] = df['date'].dt.month
 
 df['day'] = df['date'].dt.day
-print(df[['date', 'year', 'month', 'day']].head())
-#handling impossible values
-print(df[['so2', 'no2', 'rspm', 'pm2_5']].min())
-#handling outliersusing iqr method
-print(df[['so2', 'no2', 'rspm', 'pm2_5']].describe())
-Q1 = df['pm2_5'].quantile(0.25)
 
-Q3 = df['pm2_5'].quantile(0.75)
+print(df[['date', 'year', 'month', 'day']].head())
+
+#handling impossible values
+print(df[['so2', 'no2', 'rspm', 'pm2_5_x']].min())
+
+#handling outliersusing iqr method
+print(df[['so2', 'no2', 'rspm', 'pm2_5_x']].describe())
+
+Q1 = df['pm2_5_x'].quantile(0.25)
+
+Q3 = df['pm2_5_x'].quantile(0.75)
 
 IQR = Q3 - Q1
 
@@ -43,32 +56,46 @@ lower = Q1 - 1.5 * IQR
 upper = Q3 + 1.5 * IQR
 
 print(lower, upper)
+
 df = df[
-    (df['pm2_5'] >= lower) &
-    (df['pm2_5'] <= upper)
+    (df['pm2_5_x'] >= lower) &
+    (df['pm2_5_x'] <= upper)
 ]
+
 print(df.shape)
-df = df.drop(columns=[
+
+#drop unnecessary columns if present
+drop_cols = [
     'sampling_date',
     'agency',
     'location_monitoring_station'
-])
+]
+
+existing_cols = [col for col in drop_cols if col in df.columns]
+
+df = df.drop(columns=existing_cols)
+
 #encoding the data
 from sklearn.preprocessing import LabelEncoder
 
 encoder = LabelEncoder()
 
-df['state'] = encoder.fit_transform(df['state'])
+if df['state'].dtype == 'object':
+    df['state'] = encoder.fit_transform(df['state'])
 
-df['location'] = encoder.fit_transform(df['location'])
+if df['location'].dtype == 'object':
+    df['location'] = encoder.fit_transform(df['location'])
 
-df['type'] = encoder.fit_transform(df['type'])
+if df['type'].dtype == 'object':
+    df['type'] = encoder.fit_transform(df['type'])
+
 df.to_csv(
-    'data/processed/cleaned_data.csv',
+    'data/processed/cleaned_combined_dataset.csv',
     index=False
 )
 
 print("Cleaned CSV saved successfully")
+
 def get_season(month):
     if month in [12, 1, 2]:
         return 'Winter'
@@ -80,67 +107,99 @@ def get_season(month):
         return 'Post-Monsoon'
     
 df['season'] = df['month'].apply(get_season)
+
 from sklearn.preprocessing import LabelEncoder
 
 season_encoder = LabelEncoder()
 
 df['season'] = season_encoder.fit_transform(df['season'])
+
 df['so2_no2_ratio'] = df['so2'] / (df['no2'] + 1)
+
 df['total_pollution'] = (
     df['so2'] +
     df['no2'] +
     df['rspm']
 )
+
 print(df.head())
+
 # Exploratory Data Analysis
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 #PM2.5 distribution plot##############
 plt.figure(figsize=(10,6))
-sns.histplot(df['pm2_5'],bins=20,kde=True)
+
+sns.histplot(df['pm2_5_x'],bins=20,kde=True)
+
 plt.title('PM2.5 Distribution')
+
 plt.xlabel('PM2.5')
+
 plt.ylabel('Frequency')
+
 plt.show()
 
 #NO2 distribution plot ##############
 plt.figure(figsize=(8,5))
+
 sns.histplot(df['no2'], kde=True)
+
 plt.title("NO2 Distribution")
+
 plt.show()
 
 #SO2 distribution plot ##############
 plt.figure(figsize=(8,5))
+
 sns.histplot(df['so2'],kde=True)
+
 plt.title("So2 Distribution")
+
 plt.show()
 
-
 #HISTOGRAM
-df[['so2','no2','rspm','pm2_5']].hist(
+df[['so2','no2','rspm','pm2_5_x']].hist(
     figsize=(12,8),
     bins=20
 )
-plt.suptitle("Histograms of Pollutants")
-plt.show()
 
+plt.suptitle("Histograms of Pollutants")
+
+plt.show()
 
 #BOXPLOT( FOR OUTLIERS):
 plt.figure(figsize=(10,6))
-sns.boxplot(data=df[['so2','no2','rspm','pm2_5']])
+
+sns.boxplot(data=df[['so2','no2','rspm','pm2_5_x']])
+
 plt.title("Boxplot of Pollutants")
+
 plt.show()
 
 #CORRELATION HEATMAP
 plt.figure(figsize=(10,6))
-sns.heatmap(df[['so2','no2','rspm','pm2_5']].corr(),annot=True,cmap='coolwarm')
+
+sns.heatmap(
+    df[['so2','no2','rspm','pm2_5_x']].corr(),
+    annot=True,
+    cmap='coolwarm'
+)
+
 plt.title("Correlation Heatmap of Pollutants")
+
 plt.show()
 
 #PM2.5 over time
 plt.figure(figsize=(14,6))
-plt.plot(df['date'], df['pm2_5'])
+
+plt.plot(df['date'], df['pm2_5_x'])
+
 plt.title("PM2.5 Over Time")
+
 plt.xlabel("Date")
+
 plt.ylabel("PM2.5")
+
 plt.show()
