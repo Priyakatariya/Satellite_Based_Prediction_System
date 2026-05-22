@@ -317,8 +317,8 @@ def generate_comparison_plots(
 
 
 def main():
-    dataset_path = os.path.join('data', 'processed', 'model_ready_data.csv')
-    
+    dataset_path = 'Satellite_Prediction_System/data/processed/model_ready_data.csv'
+
     try:
         # 1. Load Data
         df = load_data(dataset_path)
