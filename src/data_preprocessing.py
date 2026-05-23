@@ -87,8 +87,29 @@ def clean_combined_data(combined_df=None):
         for col in combined_df.columns:
             if col not in ['stn_code']:
                 combined_df[col] = grouped[col].transform(lambda x: x.ffill().bfill())
-    else:
         combined_df = combined_df.ffill().bfill()
+        
+    # === DAY 7: FEATURE ENGINEERING ===
+    print("Performing Feature Engineering (Lag, Rolling, Seasonal)...")
+    if 'date' in combined_df.columns:
+        combined_df['dayofweek'] = combined_df['date'].dt.dayofweek
+        combined_df['season'] = combined_df['date'].dt.month.apply(
+            lambda x: 1 if x in [12, 1, 2] else (2 if x in [3, 4, 5] else (3 if x in [6, 7, 8] else 4))
+        )
+        
+    if 'stn_code' in combined_df.columns:
+        grouped = combined_df.groupby('stn_code')
+        combined_df['pm2_5_lag1'] = grouped['pm2_5'].shift(1)
+        combined_df['pm2_5_lag2'] = grouped['pm2_5'].shift(2)
+        if 'temperature' in combined_df.columns:
+            combined_df['temp_lag1'] = grouped['temperature'].shift(1)
+            
+        combined_df['pm2_5_roll3'] = grouped['pm2_5'].transform(lambda x: x.rolling(3, min_periods=1).mean())
+        combined_df['pm2_5_roll7'] = grouped['pm2_5'].transform(lambda x: x.rolling(7, min_periods=1).mean())
+        
+        # Fill any NaNs created by shifting
+        combined_df = combined_df.bfill()
+    # ==================================
         
     # 4. Feature Scaling (Standardization)
     print("Scaling numerical features...")
